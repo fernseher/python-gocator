@@ -74,6 +74,3 @@ See [example.py](example.py) for complete examples including parameter configura
 
 - Full ctypes bindings for 30+ GoSDK functions
 - Context manager support
-- Comprehensive error handling
-- See [IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md) for technical details
-- See [SDK_INTEGRATION.md](SDK_INTEGRATION.md) for SDK installation
