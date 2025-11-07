@@ -1,0 +1,17 @@
+[project]
+name = "gocator-interface"
+version = "1.0.0"
+description = "Simple Python library to get point clouds from Gocator 3D scanners"
+authors = [{name = "Maximilian Eder"}]
+requires-python = ">=3.9"
+dependencies = [
+    "numpy>=1.20.0",
+]
+
+[project.readme]
+file = "README.md"
+content-type = "text/markdown"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
