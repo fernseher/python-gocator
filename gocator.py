@@ -8,7 +8,7 @@ import os
 # GoSDK Constants
 class kStatus:
     """GoSDK status codes"""
-    kOK = 0
+    kOK = 1
     kERROR = -1
     kERROR_PARAMETER = -2
     kERROR_UNIMPLEMENTED = -3
@@ -36,6 +36,13 @@ class kStatus:
 # GoSDK Role constants
 GO_ROLE_MAIN = 0
 GO_ROLE_BUDDY = 1
+
+# GoSDK Mode constants
+GO_MODE_UNKNOWN = -1
+GO_MODE_VIDEO = 0
+GO_MODE_RANGE = 1
+GO_MODE_PROFILE = 2
+GO_MODE_SURFACE = 3
 
 # GoSDK message types
 GO_DATA_MESSAGE_TYPE_UNKNOWN = 0
@@ -78,6 +85,16 @@ class kIpAddress(ctypes.Structure):
     """kApi IP address structure"""
     _fields_ = [
         ("address", ctypes.c_uint32),  # IP address as 32-bit integer
+    ]
+
+
+# 3D Point structure for Surface Point Cloud
+class kPoint3d16s(ctypes.Structure):
+    """3D point with 16-bit signed integer coordinates"""
+    _fields_ = [
+        ("x", ctypes.c_int16),
+        ("y", ctypes.c_int16),
+        ("z", ctypes.c_int16),
     ]
 
 
@@ -134,7 +151,17 @@ class GocatorScanner:
         for path in paths:
             if os.path.exists(path):
                 try:
-                    self.sdk = ctypes.CDLL(path)
+                    # Load kApi library first with RTLD_GLOBAL if it exists alongside GoSdk
+                    kapi_path = os.path.join(os.path.dirname(path), "libkApi.so")
+                    if os.path.exists(kapi_path):
+                        try:
+                            ctypes.CDLL(kapi_path, mode=ctypes.RTLD_GLOBAL)
+                            print(f"Pre-loaded kApi from: {kapi_path}")
+                        except Exception as e:
+                            print(f"Warning: Could not pre-load kApi: {e}")
+
+                    # Now load GoSdk
+                    self.sdk = ctypes.CDLL(path, mode=ctypes.RTLD_GLOBAL)
                     print(f"Loaded Gocator SDK from: {path}")
                     self._setup_functions()
                     return True
@@ -153,9 +180,9 @@ class GocatorScanner:
 
         # === Initialization Functions ===
 
-        # kStatus GoSdk_Construct(kAlloc allocator, kObject* system)
+        # kStatus GoSdk_Construct(kAssembly* assembly)
         self.sdk.GoSdk_Construct.argtypes = [
-            ctypes.POINTER(ctypes.c_void_p)     # system
+            ctypes.POINTER(ctypes.c_void_p)     # assembly
         ]
         self.sdk.GoSdk_Construct.restype = ctypes.c_int
 
@@ -222,6 +249,10 @@ class GocatorScanner:
         self.sdk.GoSensor_Id.argtypes = [ctypes.c_void_p]
         self.sdk.GoSensor_Id.restype = ctypes.c_uint32
 
+        # GoMode GoSensor_ScanMode(kObject sensor)
+        self.sdk.GoSensor_ScanMode.argtypes = [ctypes.c_void_p]
+        self.sdk.GoSensor_ScanMode.restype = ctypes.c_int32
+
         # === Parameter Configuration ===
 
         # k64f GoSetup_Exposure(kObject setup, GoRole role)
@@ -263,6 +294,12 @@ class GocatorScanner:
         # kStatus GoSystem_Stop(kObject system)
         self.sdk.GoSystem_Stop.argtypes = [ctypes.c_void_p]
         self.sdk.GoSystem_Stop.restype = ctypes.c_int
+
+        # === Software Trigger ===
+
+        # kStatus GoSensor_Trigger(kObject sensor)
+        self.sdk.GoSensor_Trigger.argtypes = [ctypes.c_void_p]
+        self.sdk.GoSensor_Trigger.restype = ctypes.c_int
 
         # === Data Acquisition ===
 
@@ -338,6 +375,47 @@ class GocatorScanner:
         ]
         self.sdk.GoSurfaceMsg_RowAt.restype = ctypes.POINTER(ctypes.c_int16)
 
+        # === Surface Point Cloud Message Functions (Type 28) ===
+
+        # kSize GoSurfacePointCloudMsg_Length(kObject message)
+        self.sdk.GoSurfacePointCloudMsg_Length.argtypes = [ctypes.c_void_p]
+        self.sdk.GoSurfacePointCloudMsg_Length.restype = ctypes.c_size_t
+
+        # kSize GoSurfacePointCloudMsg_Width(kObject message)
+        self.sdk.GoSurfacePointCloudMsg_Width.argtypes = [ctypes.c_void_p]
+        self.sdk.GoSurfacePointCloudMsg_Width.restype = ctypes.c_size_t
+
+        # k32u GoSurfacePointCloudMsg_XResolution(kObject message)
+        self.sdk.GoSurfacePointCloudMsg_XResolution.argtypes = [ctypes.c_void_p]
+        self.sdk.GoSurfacePointCloudMsg_XResolution.restype = ctypes.c_uint32
+
+        # k32u GoSurfacePointCloudMsg_YResolution(kObject message)
+        self.sdk.GoSurfacePointCloudMsg_YResolution.argtypes = [ctypes.c_void_p]
+        self.sdk.GoSurfacePointCloudMsg_YResolution.restype = ctypes.c_uint32
+
+        # k32u GoSurfacePointCloudMsg_ZResolution(kObject message)
+        self.sdk.GoSurfacePointCloudMsg_ZResolution.argtypes = [ctypes.c_void_p]
+        self.sdk.GoSurfacePointCloudMsg_ZResolution.restype = ctypes.c_uint32
+
+        # k32s GoSurfacePointCloudMsg_XOffset(kObject message)
+        self.sdk.GoSurfacePointCloudMsg_XOffset.argtypes = [ctypes.c_void_p]
+        self.sdk.GoSurfacePointCloudMsg_XOffset.restype = ctypes.c_int32
+
+        # k32s GoSurfacePointCloudMsg_YOffset(kObject message)
+        self.sdk.GoSurfacePointCloudMsg_YOffset.argtypes = [ctypes.c_void_p]
+        self.sdk.GoSurfacePointCloudMsg_YOffset.restype = ctypes.c_int32
+
+        # k32s GoSurfacePointCloudMsg_ZOffset(kObject message)
+        self.sdk.GoSurfacePointCloudMsg_ZOffset.argtypes = [ctypes.c_void_p]
+        self.sdk.GoSurfacePointCloudMsg_ZOffset.restype = ctypes.c_int32
+
+        # kPoint3d16s* GoSurfacePointCloudMsg_RowAt(kObject message, kSize index)
+        self.sdk.GoSurfacePointCloudMsg_RowAt.argtypes = [
+            ctypes.c_void_p,                    # message
+            ctypes.c_size_t                     # rowIndex
+        ]
+        self.sdk.GoSurfacePointCloudMsg_RowAt.restype = ctypes.POINTER(kPoint3d16s)
+
         # === Cleanup Functions ===
 
         # kStatus GoDestroy(kObject object)
@@ -409,7 +487,7 @@ class GocatorScanner:
             self.sdk.GoSensor_Model(self.sensor, model_buffer, 64)
             sensor_id = self.sdk.GoSensor_Id(self.sensor)
 
-            print(f"Connected to Gocator sensor:")
+            print("Connected to Gocator sensor:")
             print(f"  IP: {self.ip_address}")
             print(f"  Model: {model_buffer.value.decode('utf-8')}")
             print(f"  Serial: {sensor_id}")
@@ -432,13 +510,12 @@ class GocatorScanner:
                 # Stop system if running
                 self.sdk.GoSystem_Stop(self.system)
 
-                # Disconnect sensor
+                # Disconnect sensor (but don't destroy - it's owned by system)
                 if self.sensor:
                     self.sdk.GoSensor_Disconnect(self.sensor)
-                    self.sdk.GoDestroy(self.sensor)
                     self.sensor = None
 
-                # Destroy system
+                # Destroy system (this also cleans up the sensor)
                 if self.system:
                     self.sdk.GoDestroy(self.system)
                     self.system = None
@@ -481,6 +558,30 @@ class GocatorScanner:
             return False
         return True
 
+    def trigger(self) -> bool:
+        """
+        Send a software trigger to the sensor.
+
+        This triggers a single scan when the sensor is in Software or Time trigger mode.
+        The sensor must be started (via start()) before triggering.
+
+        Returns:
+            True if successful
+
+        Raises:
+            ConnectionError: If not connected to sensor
+        """
+        if not self.connected:
+            raise ConnectionError("Not connected to sensor")
+
+        status = self.sdk.GoSensor_Trigger(self.sensor)
+        if status != kStatus.kOK:
+            print(f"Failed to trigger sensor. Status: {status}")
+            print("Make sure the sensor is started and configured for Software trigger mode")
+            return False
+
+        return True
+
     def get_point_cloud(self, timeout_us: int = RECEIVE_TIMEOUT) -> Optional[NDArray[np.float64]]:
         """
         Receive and extract point cloud data from sensor.
@@ -510,7 +611,20 @@ class GocatorScanner:
                 if status == kStatus.kERROR_TIMEOUT:
                     print("Timeout waiting for data")
                     return None
-                print(f"Failed to receive data. Status: {status}")
+                # Map common error codes
+                error_names = {
+                    -993: "kERROR (GoSystem not started or no data configured)",
+                    -1: "kERROR",
+                    -5: "kERROR_TIMEOUT",
+                    -7: "kERROR_STREAM",
+                    -12: "kERROR_NETWORK",
+                }
+                error_name = error_names.get(status, f"Unknown error {status}")
+                print(f"Failed to receive data. Status: {status} ({error_name})")
+                print("Possible causes:")
+                print("  - Sensor may not be in the correct output mode (needs Surface mode)")
+                print("  - GoSystem may not have been started properly")
+                print("  - Sensor trigger mode might require external triggering")
                 return None
 
             # 2. Process all messages in dataset
@@ -519,16 +633,41 @@ class GocatorScanner:
                 print("No messages in dataset")
                 return None
 
-            # 3. Find surface message and extract point cloud
+            # 3. Debug: show all message types received
+            print(f"Received {msg_count} messages:")
+            message_types = {
+                0: "STAMP", 1: "HEALTH", 2: "VIDEO", 3: "RANGE",
+                4: "RANGE_INTENSITY", 5: "PROFILE_POINT_CLOUD", 6: "PROFILE_INTENSITY",
+                7: "UNIFORM_PROFILE", 8: "UNIFORM_SURFACE", 9: "SURFACE_INTENSITY",
+                10: "MEASUREMENT", 11: "ALIGNMENT", 12: "EXPOSURE_CAL",
+                16: "EDGE_MATCH", 17: "BOUNDING_BOX_MATCH", 18: "ELLIPSE_MATCH",
+                20: "SECTION", 21: "SECTION_INTENSITY", 22: "EVENT",
+                23: "TRACHEID", 24: "FEATURE_POINT", 25: "FEATURE_LINE",
+                26: "FEATURE_PLANE", 27: "FEATURE_CIRCLE", 28: "SURFACE_POINT_CLOUD",
+                29: "GENERIC", 30: "NULL", 36: "MESH"
+            }
+
+            for i in range(msg_count):
+                msg = self.sdk.GoDataSet_At(dataset, i)
+                msg_type = self.sdk.GoDataMsg_Type(msg)
+                type_name = message_types.get(msg_type, f"Type {msg_type}")
+                print(f"  Message {i}: {type_name} (type={msg_type})")
+
+            # 4. Find surface message and extract point cloud
             for i in range(msg_count):
                 msg = self.sdk.GoDataSet_At(dataset, i)
                 msg_type = self.sdk.GoDataMsg_Type(msg)
 
-                if msg_type == GO_DATA_MESSAGE_TYPE_SURFACE:
+                # Handle both old UNIFORM_SURFACE (8) and new SURFACE_POINT_CLOUD (28)
+                if msg_type == 8:  # UNIFORM_SURFACE (legacy)
                     points = self._extract_surface_points(msg)
+                    return points
+                elif msg_type == 28:  # SURFACE_POINT_CLOUD (native/unresampled)
+                    points = self._extract_surface_point_cloud(msg)
                     return points
 
             print("No surface message found in dataset")
+            print("Note: Sensor must be configured to output Surface data in Gocator web interface")
             return None
 
         except Exception as e:
@@ -539,7 +678,7 @@ class GocatorScanner:
 
         finally:
             # Cleanup dataset
-            if dataset:
+            if dataset and dataset.value:
                 self.sdk.GoDestroy(dataset)
 
     def scan_and_get(self) -> Optional[NDArray[np.float64]]:
@@ -552,7 +691,11 @@ class GocatorScanner:
         if self.start():
             import time
             time.sleep(0.1)  # Wait for scan to complete
-            return self.get_point_cloud()
+            try:
+                point_cloud = self.get_point_cloud()
+                return point_cloud
+            finally:
+                self.stop()
         return None
 
     def _extract_surface_points(self, surface_msg) -> NDArray[np.float64]:
@@ -620,6 +763,83 @@ class GocatorScanner:
         points = np.array(points_list, dtype=np.float64)
 
         print(f"Extracted {len(points)} points from {length}x{width} surface")
+        print(f"  X range: [{points[:, 0].min():.6f}, {points[:, 0].max():.6f}] m")
+        print(f"  Y range: [{points[:, 1].min():.6f}, {points[:, 1].max():.6f}] m")
+        print(f"  Z range: [{points[:, 2].min():.6f}, {points[:, 2].max():.6f}] m")
+
+        return points
+
+    def _extract_surface_point_cloud(self, surface_msg) -> NDArray[np.float64]:
+        """
+        Extract XYZ point cloud from GoSurfacePointCloudMsg (Type 28).
+
+        This is the newer unresampled/native surface point cloud format.
+        Each point has X, Y, Z coordinates stored as 16-bit signed integers.
+
+        Args:
+            surface_msg: GoSurfacePointCloudMsg object pointer
+
+        Returns:
+            Nx3 numpy array of (X, Y, Z) coordinates in meters
+        """
+        # Get dimensions
+        length = self.sdk.GoSurfacePointCloudMsg_Length(surface_msg)  # rows
+        width = self.sdk.GoSurfacePointCloudMsg_Width(surface_msg)    # cols
+
+        # Get resolution (in nanometers) and offset (in micrometers)
+        x_resolution = self.sdk.GoSurfacePointCloudMsg_XResolution(surface_msg)  # nm
+        y_resolution = self.sdk.GoSurfacePointCloudMsg_YResolution(surface_msg)  # nm
+        z_resolution = self.sdk.GoSurfacePointCloudMsg_ZResolution(surface_msg)  # nm
+
+        x_offset = self.sdk.GoSurfacePointCloudMsg_XOffset(surface_msg)  # um
+        y_offset = self.sdk.GoSurfacePointCloudMsg_YOffset(surface_msg)  # um
+        z_offset = self.sdk.GoSurfacePointCloudMsg_ZOffset(surface_msg)  # um
+
+        # Convert to meters
+        x_res_m = x_resolution * 1e-9  # nm to m
+        y_res_m = y_resolution * 1e-9  # nm to m
+        z_res_m = z_resolution * 1e-9  # nm to m
+
+        x_off_m = x_offset * 1e-6  # um to m
+        y_off_m = y_offset * 1e-6  # um to m
+        z_off_m = z_offset * 1e-6  # um to m
+
+        print(f"Surface Point Cloud: {length}x{width} points")
+        print(f"  Resolution: X={x_resolution}nm, Y={y_resolution}nm, Z={z_resolution}nm")
+        print(f"  Offset: X={x_offset}um, Y={y_offset}um, Z={z_offset}um")
+
+        # Pre-allocate point cloud list
+        points_list = []
+
+        # Iterate through rows
+        for row_idx in range(length):
+            # Get pointer to 3D points for this row
+            row_data = self.sdk.GoSurfacePointCloudMsg_RowAt(surface_msg, row_idx)
+
+            # Iterate through columns
+            for col_idx in range(width):
+                # Get 3D point (kPoint3d16s structure)
+                point = row_data[col_idx]
+
+                # Skip invalid points (check Z value)
+                if point.z == k16S_MIN:
+                    continue
+
+                # Convert to engineering units (meters)
+                x = x_off_m + point.x * x_res_m
+                y = y_off_m + point.y * y_res_m
+                z = z_off_m + point.z * z_res_m
+
+                points_list.append([x, y, z])
+
+        # Convert to numpy array
+        if not points_list:
+            print("Warning: No valid points in surface point cloud message")
+            return np.array([]).reshape(0, 3)
+
+        points = np.array(points_list, dtype=np.float64)
+
+        print(f"Extracted {len(points)} valid points from {length}x{width} surface")
         print(f"  X range: [{points[:, 0].min():.6f}, {points[:, 0].max():.6f}] m")
         print(f"  Y range: [{points[:, 1].min():.6f}, {points[:, 1].max():.6f}] m")
         print(f"  Z range: [{points[:, 2].min():.6f}, {points[:, 2].max():.6f}] m")
@@ -727,6 +947,27 @@ class GocatorScanner:
             "model": model_buffer.value.decode('utf-8'),
             "serial_number": sensor_id,
         }
+
+    def get_scan_mode(self) -> tuple[int, str]:
+        """
+        Get the current scan mode of the sensor.
+
+        Returns:
+            Tuple of (mode_value, mode_name)
+            Modes: VIDEO (0), RANGE (1), PROFILE (2), SURFACE (3)
+        """
+        if not self.connected:
+            raise ConnectionError("Not connected to sensor")
+
+        mode = self.sdk.GoSensor_ScanMode(self.sensor)
+        mode_names = {
+            GO_MODE_UNKNOWN: "UNKNOWN",
+            GO_MODE_VIDEO: "VIDEO",
+            GO_MODE_RANGE: "RANGE",
+            GO_MODE_PROFILE: "PROFILE",
+            GO_MODE_SURFACE: "SURFACE"
+        }
+        return mode, mode_names.get(mode, f"Unknown mode {mode}")
 
     def __enter__(self):
         """Context manager support."""

@@ -12,37 +12,58 @@ This example demonstrates how to:
 from gocator import GocatorScanner
 import numpy as np
 
+IP = "192.168.100.125"
+SDK_PATH = "/home/max/dev/GO_SDK/lib/linux_x64d/libGoSdk.so"
+
 
 def example_basic_connection():
-    """Basic connection and single scan example."""
+    """Basic connection and single scan example with software triggering."""
     print("=" * 60)
-    print("Example 1: Basic Connection and Single Scan")
+    print("Example 1: Basic Connection and Software-Triggered Scan")
     print("=" * 60)
 
     # SDK path is auto-detected from common installation locations
     # Or specify manually: sdk_path="/path/to/libGoSdk.so"
-    scanner = GocatorScanner(ip_address="192.168.1.10")
+    scanner = GocatorScanner(
+        ip_address=IP,
+        sdk_path=SDK_PATH
+    )
 
     try:
         if scanner.connect():
             # Get sensor information
             info = scanner.get_sensor_info()
-            print(f"\nSensor Info:")
+            print("\nSensor Info:")
             print(f"  Model: {info['model']}")
             print(f"  Serial: {info['serial_number']}")
             print(f"  IP: {info['ip_address']}")
 
-            # Trigger scan and get point cloud
-            print("\nAcquiring point cloud...")
+            # Start the acquisition system
+            print("\nStarting acquisition system...")
             scanner.start()
-            point_cloud = scanner.get_point_cloud()
+
+            # Software trigger the sensor
+            print("Sending software trigger...")
+            if scanner.trigger():
+                print("Trigger sent successfully")
+
+                # Wait for and receive the triggered scan
+                print("Waiting for point cloud data...")
+                point_cloud = scanner.get_point_cloud()
+
+                if point_cloud is not None:
+                    print(f"\nReceived {len(point_cloud)} points")
+                    print(f"Shape: {point_cloud.shape}")
+                    print(f"Data type: {point_cloud.dtype}")
+                else:
+                    print("\nNote: If no data received, ensure sensor is configured for:")
+                    print("  - Trigger Mode: Software or Time")
+                    print("  - Output: Surface data enabled")
+            else:
+                print("Failed to trigger sensor")
+
+            # Stop the acquisition system
             scanner.stop()
-
-            if point_cloud is not None:
-                print(f"\nReceived {len(point_cloud)} points")
-                print(f"Shape: {point_cloud.shape}")
-                print(f"Data type: {point_cloud.dtype}")
-
             scanner.disconnect()
     except Exception as e:
         print(f"Error: {e}")
@@ -56,7 +77,7 @@ def example_context_manager():
     print("Example 2: Context Manager Usage")
     print("=" * 60)
 
-    with GocatorScanner("192.168.1.10") as scanner:
+    with GocatorScanner(IP, SDK_PATH) as scanner:
         # Convenience method: start, get data, and stop
         point_cloud = scanner.scan_and_get()
 
@@ -76,7 +97,7 @@ def example_configure_parameters():
     print("Example 3: Configure Sensor Parameters")
     print("=" * 60)
 
-    with GocatorScanner("192.168.1.10") as scanner:
+    with GocatorScanner(IP, SDK_PATH) as scanner:
         # Get current settings
         current_exposure = scanner.get_exposure()
         current_spacing = scanner.get_spacing_interval()
@@ -110,7 +131,7 @@ def example_multiple_scans():
     print("Example 4: Multiple Continuous Scans")
     print("=" * 60)
 
-    with GocatorScanner("192.168.1.10") as scanner:
+    with GocatorScanner(IP, SDK_PATH) as scanner:
         scanner.start()
 
         num_scans = 5
@@ -142,7 +163,7 @@ def example_save_point_cloud():
     print("Example 5: Save Point Cloud to Files")
     print("=" * 60)
 
-    with GocatorScanner("192.168.1.10") as scanner:
+    with GocatorScanner(IP, SDK_PATH) as scanner:
         point_cloud = scanner.scan_and_get()
 
         if point_cloud is not None:
@@ -196,7 +217,7 @@ if __name__ == "__main__":
     # Run examples (comment out examples you don't want to run)
     try:
         example_basic_connection()
-        example_context_manager()
+        # example_context_manager()
         # example_configure_parameters()
         # example_multiple_scans()
         # example_save_point_cloud()
