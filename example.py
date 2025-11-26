@@ -55,6 +55,27 @@ def example_basic_connection():
                     print(f"\nReceived {len(point_cloud)} points")
                     print(f"Shape: {point_cloud.shape}")
                     print(f"Data type: {point_cloud.dtype}")
+
+                    # Save point cloud to files
+                    print("\nSaving point cloud to files...")
+
+                    # Save as NumPy binary
+                    np.save("point_cloud.npy", point_cloud)
+                    print("  ✓ Saved to point_cloud.npy")
+
+                    # Save as CSV
+                    np.savetxt(
+                        "point_cloud.csv", point_cloud,
+                        delimiter=",",
+                        header="X,Y,Z",
+                        comments="",
+                        fmt="%.6f"
+                    )
+                    print("  ✓ Saved to point_cloud.csv")
+
+                    # Save as PLY
+                    save_ply("point_cloud.ply", point_cloud)
+                    print("  ✓ Saved to point_cloud.ply")
                 else:
                     print("\nNote: If no data received, ensure sensor is configured for:")
                     print("  - Trigger Mode: Software or Time")
