@@ -15,6 +15,7 @@ Python ctypes wrapper for LMI Gocator SDK. Acquires 3D point clouds from Gocator
 ```python
 with GocatorScanner("192.168.1.10") as scanner:
     scanner.start()
+    scanner.trigger()  # Software trigger
     point_cloud = scanner.get_point_cloud()
     scanner.stop()
 ```
@@ -34,6 +35,7 @@ with GocatorScanner("192.168.1.10") as scanner:
 with GocatorScanner("192.168.1.10") as scanner:
     scanner.start()
     for i in range(10):
+        scanner.trigger()
         point_cloud = scanner.get_point_cloud()
     scanner.stop()
 ```
@@ -48,6 +50,7 @@ with GocatorScanner("192.168.1.10") as scanner:
 **Acquisition:**
 - `start() -> bool`
 - `stop() -> bool`
+- `trigger() -> bool`
 - `get_point_cloud(timeout_us=20000000) -> NDArray`
 - `scan_and_get() -> NDArray`
 
