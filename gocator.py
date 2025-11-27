@@ -124,7 +124,7 @@ class GocatorScanner:
         if not self._load_sdk(sdk_path):
             raise RuntimeError(
                 "Gocator SDK not found. Install from https://www.lmi3d.com/\n"
-                f"Or specify sdk_path parameter."
+                "Or specify sdk_path parameter."
             )
 
     def _load_sdk(self, sdk_path: Optional[str] = None) -> bool:
@@ -204,7 +204,9 @@ class GocatorScanner:
 
         # === Sensor Discovery ===
 
-        # kStatus GoSystem_FindSensorByIpAddress(kObject system, const kIpAddress* address, kObject* sensor)
+        # kStatus GoSystem_FindSensorByIpAddress(
+        #   kObject system, const kIpAddress* address, kObject* sensor
+        # )
         self.sdk.GoSystem_FindSensorByIpAddress.argtypes = [
             ctypes.c_void_p,                    # system
             ctypes.POINTER(kIpAddress),         # address
