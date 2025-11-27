@@ -5,7 +5,18 @@ Python wrapper for LMI Technologies Gocator SDK. Acquire 3D point clouds from Go
 ## Installation
 
 1. Install [Gocator SDK](https://www.lmi3d.com/) to standard location
-2. Install dependencies: `pip install numpy`
+2. Install dependencies (requires Python 3.9+):
+
+   **Simple installation:**
+   ```bash
+   pip install numpy
+   ```
+
+   **With virtual environment using uv.lock file (recommended):**
+   ```bash
+   uv sync
+   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+   ```
 
 ## Quick Start
 

@@ -1,7 +1,5 @@
 """
-Gocator Interface - Simple library to get point clouds from Gocator sensors
-
-Separate from pin_scanner - can be used independently.
+Python Gocator - Python wrapper for LMI Technologies Gocator SDK
 
 SDK-based implementation using official Gocator SDK via ctypes.
 Requires Gocator SDK installation from https://www.lmi3d.com/

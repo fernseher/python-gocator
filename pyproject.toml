@@ -1,5 +1,5 @@
 [project]
-name = "gocator-interface"
+name = "python-gocator"
 version = "1.0.0"
 description = "Simple Python library to get point clouds from Gocator 3D scanners"
 authors = [{name = "Maximilian Eder"}]
