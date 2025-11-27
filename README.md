@@ -89,7 +89,3 @@ scanner = GocatorScanner("192.168.1.10", sdk_path="/path/to/libGoSdk.so")
 ## License
 
 MIT License - Copyright (c) 2025 Maximilian Eder
-
-## Author
-
-Maximilian Eder
