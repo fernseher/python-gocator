@@ -12,8 +12,15 @@ This example demonstrates how to:
 from gocator import GocatorScanner
 import numpy as np
 
+# Configure your sensor IP address
 IP = "192.168.100.125"
-SDK_PATH = "/home/max/dev/GO_SDK/lib/linux_x64d/libGoSdk.so"
+
+# SDK path is auto-detected from common installation locations
+# If needed, specify manually for your system:
+# Linux: SDK_PATH = "/opt/lmi/gocator/lib/libGoSdk.so"
+# Windows: SDK_PATH = "C:\\Program Files\\LMI Technologies\\Gocator\\lib\\GoSdk.dll"
+# macOS: SDK_PATH = "/usr/local/lib/libGoSdk.dylib"
+SDK_PATH = None  # None for auto-detection
 
 
 def example_basic_connection():

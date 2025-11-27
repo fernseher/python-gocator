@@ -3,3 +3,23 @@ __pycache__/
 build/
 dist/
 *.egg-info/
+
+# Virtual environment
+.venv/
+venv/
+ENV/
+
+# Point cloud output files
+*.ply
+*.npy
+*.csv
+point_cloud.*
+
+# IDE settings
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Development/testing files
+diagnose_sensor.py
