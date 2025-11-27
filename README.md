@@ -1,6 +1,6 @@
 # Gocator Interface
 
-Python wrapper for LMI Technologies Gocator SDK. Acquire 3D point clouds from Gocator laser scanners.
+Python wrapper for LMI Technologies Gocator SDK. Acquire 3D point clouds from Gocator laser scanners. Tested with snapshot sensor Gocator 3506.
 
 ## Installation
 
